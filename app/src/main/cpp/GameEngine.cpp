@@ -1,6 +1,7 @@
 #include "GameEngine.h"
 #include "ScriptManager.h"
 #include <android/log.h>
+#include <android/looper.h>
 #include <android_native_app_glue.h>
 
 #define LOG_TAG "GameEngine"

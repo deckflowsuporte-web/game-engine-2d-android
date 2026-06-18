@@ -3,9 +3,11 @@
 
 #include <android/input.h>
 #include <android/log.h>
-#include <android_native_app_glue.h>
 #include <time.h>
 #include <stdint.h>
+
+// Forward declaration instead of including android_native_app_glue.h
+struct android_app;
 
 class ScriptManager;
 

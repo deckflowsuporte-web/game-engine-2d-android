@@ -1,13 +1,8 @@
 #ifndef SCRIPT_MANAGER_H
 #define SCRIPT_MANAGER_H
 
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
-
 #include <stdarg.h>
+#include <string>
 
 class ScriptManager {
 public:
@@ -21,11 +16,11 @@ public:
     bool executeString(const char* code);
     void callFunction(const char* funcName, int argc, ...);
 
-    lua_State* getLuaState();
+    bool isInitialized() const { return m_Initialized; }
 
 private:
-    lua_State* m_LuaState;
     bool m_Initialized;
+    std::string m_LastError;
 };
 
 #endif // SCRIPT_MANAGER_H
