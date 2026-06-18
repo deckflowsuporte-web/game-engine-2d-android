@@ -43,36 +43,24 @@ jobs:
         run: |
           rm -rf app/build .gradle ~/.gradle/caches
 
-      - name: Build debug APK (arm64-v8a)
+      - name: Build all debug APKs
         run: |
-          ./gradlew assembleDebug -Ptarget=arm64-v8a --no-daemon
+          ./gradlew assembleDebug --no-daemon
 
-      - name: Upload arm64-v8a debug APK
+      - name: Debug APK paths
+        run: find app/build/outputs -name "*.apk" -type f
+
+      - name: Upload all debug APKs
         uses: actions/upload-artifact@v4
         with:
-          name: game-engine-apk-arm64-v8a
-          path: app/build/outputs/apk/debug/arm64-v8a/*.apk
-          retention-days: 30
-
-      - name: Clean for next ABI build
-        run: |
-          rm -rf app/build
-
-      - name: Build debug APK (armeabi-v7a)
-        run: |
-          ./gradlew assembleDebug -Ptarget=armeabi-v7a --no-daemon
-
-      - name: Upload armeabi-v7a debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: game-engine-apk-armeabi-v7a
-          path: app/build/outputs/apk/debug/armeabi-v7a/*.apk
+          name: game-engine-apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
 
     steps:
       - name: Download APK
