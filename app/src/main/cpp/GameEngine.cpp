@@ -2,7 +2,7 @@
 #include "ScriptManager.h"
 #include <android/log.h>
 #include <android/looper.h>
-#include <android_native_app_glue.h>
+#include "native_app_glue/android_native_app_glue.h"
 
 #define LOG_TAG "GameEngine"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -163,6 +163,9 @@ void GameEngine::onCommand(int32_t cmd) {
         case APP_CMD_DESTROY:
             LOGI("App destroyed");
             shutdown();
+            break;
+        default:
+            LOGI("Unknown command: %d", cmd);
             break;
     }
 }

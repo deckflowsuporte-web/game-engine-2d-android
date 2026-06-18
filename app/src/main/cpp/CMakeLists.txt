@@ -11,11 +11,9 @@ if(ANDROID)
     set(ANDROID_STL "c++_shared")
 endif()
 
-# Find native_app_glue via prefab
-find_package(android_native_app_glue REQUIRED CONFIG)
-
-# Source files for the engine core
+# Source files for the engine core (including native_app_glue)
 set(ENGINE_SOURCES
+    native_app_glue/android_native_app_glue.c
     ScriptManager.cpp
     GameEngine.cpp
 )
@@ -26,11 +24,11 @@ add_library(gameengine SHARED ${ENGINE_SOURCES})
 # Include directories
 target_include_directories(gameengine PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/native_app_glue
 )
 
 # Link libraries
 target_link_libraries(gameengine
-    android_native_app_glue::android_native_app_glue
     android
     log
 )
