@@ -61,6 +61,14 @@ android {
     ndkVersion = "25.1.8937393"
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0")
+    }
+}
+
 dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.core:core:1.12.0")
