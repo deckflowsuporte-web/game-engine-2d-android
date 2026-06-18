@@ -10,7 +10,6 @@ on:
 env:
   JAVA_VERSION: '17'
   ANDROID_COMPILE_SDK: 34
-  ANDROID_BUILD_TOOLS_VERSION: 34.0.0
   ANDROID_NDK_VERSION: 25.1.8937393
 
 jobs:
@@ -43,37 +42,23 @@ jobs:
         run: |
           rm -rf app/build .gradle ~/.gradle/caches
 
-      - name: Build all debug APKs
-        run: |
-          ./gradlew assembleDebug --no-daemon
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Debug APK paths
-        run: find app/build/outputs -name "*.apk" -type f
-        id: find-apk
-
-      - name: Upload all debug APKs
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: game-engine-apk
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 30
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
-
-    steps:
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: game-engine-apk
+          name: game-engine-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 5
 
       - name: Create Release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: softprops/action-gh-release@v1
         with:
-          files: '*.apk'
-          tag_name: build-${{ github.run_number }}
+          files: app/build/outputs/apk/debug/app-debug.apk
+          tag_name: v${{ github.run_number }}
+          name: Build #${{ github.run_number }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
