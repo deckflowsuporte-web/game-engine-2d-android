@@ -58,6 +58,13 @@ android {
         prefab = true
     }
 
+    prefab {
+        create("android_native_app_glue") {
+            headers = "${ANDROID_NDK}/sources/android/native_app_glue"
+            libraryName = "android_native_app_glue"
+        }
+    }
+
     ndkVersion = "25.1.8937393"
 }
 

@@ -11,9 +11,8 @@ if(ANDROID)
     set(ANDROID_STL "c++_shared")
 endif()
 
-# Import the native_app_glue module
-include(${ANDROID_NDK}/cmake/android.toolchain.cmake)
-find_library(android_native_app_glue_lib android_native_app_glue)
+# Find native_app_glue via prefab
+find_package(android_native_app_glue REQUIRED CONFIG)
 
 # Source files for the engine core
 set(ENGINE_SOURCES
@@ -31,7 +30,7 @@ target_include_directories(gameengine PRIVATE
 
 # Link libraries
 target_link_libraries(gameengine
-    ${android_native_app_glue_lib}
+    android_native_app_glue::android_native_app_glue
     android
     log
 )
