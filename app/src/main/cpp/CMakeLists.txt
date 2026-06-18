@@ -9,8 +9,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Android specific settings
 if(ANDROID)
     set(ANDROID_STL "c++_shared")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -llog")
 endif()
+
+# Import the native_app_glue module
+include(${ANDROID_NDK}/cmake/android.toolchain.cmake)
+find_library(android_native_app_glue_lib android_native_app_glue)
 
 # Source files for the engine core
 set(ENGINE_SOURCES
@@ -21,19 +24,14 @@ set(ENGINE_SOURCES
 # Create the shared library
 add_library(gameengine SHARED ${ENGINE_SOURCES})
 
-# Include directories - need both app_glue and NDK paths
+# Include directories
 target_include_directories(gameengine PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${ANDROID_NDK}/sources/android/native_app_glue
-    ${ANDROID_NDK}/sysroot/usr/include
-    ${ANDROID_NDK}/sysroot/usr/include/android
 )
 
-# Link libraries - native_app_glue is a static library
+# Link libraries
 target_link_libraries(gameengine
-    -Wl,--whole-archive
-    ${ANDROID_NDK}/sources/android/native_app_glue/${ANDROID_ABI}/libandroid_native_app_glue.a
-    -Wl,--no-whole-archive
+    ${android_native_app_glue_lib}
     android
     log
 )
