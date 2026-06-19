@@ -8,8 +8,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 
+        <!-- Editor Activity - Main editor interface -->
         <activity
-            android:name=".MainActivity"
+            android:name=".editor.EditorActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:screenOrientation="landscape">
