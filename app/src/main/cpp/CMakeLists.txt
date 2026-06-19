@@ -6,36 +6,34 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Optimization flags for weak devices
+# Optimization flags
 set(CMAKE_C_FLAGS_RELEASE "-O2 -ffast-math")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -ffast-math")
 
-# Android specific settings
+# Android specific
 if(ANDROID)
     set(ANDROID_STL "c++_shared")
 endif()
 
-# Source files for the engine core
+# Source files
 set(ENGINE_SOURCES
-    native_app_glue/android_native_app_glue.c
-    ScriptManager.cpp
     GameEngine.cpp
 )
 
-# Create the shared library
+# Create shared library
 add_library(gameengine SHARED ${ENGINE_SOURCES})
 
 # Include directories
 target_include_directories(gameengine PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/native_app_glue
 )
 
-# Link libraries - minimal set for weak devices
+# Link OpenGL ES 2.0 and EGL
 target_link_libraries(gameengine
     android
     log
+    GLESv2
+    EGL
 )
 
-# Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

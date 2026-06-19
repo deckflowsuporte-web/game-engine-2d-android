@@ -1,213 +1,157 @@
-#include "GameEngine.h"
-#include "ScriptManager.h"
+#include <jni.h>
 #include <android/log.h>
-#include <android/looper.h>
-#include <thread>
-#include <chrono>
-#include "native_app_glue/android_native_app_glue.h"
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
 
-#define LOG_TAG "GameEngine"
+#define LOG_TAG "GameEngine2D"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-GameEngine::GameEngine(android_app* app) 
-    : m_App(app)
-    , m_Running(false)
-    , m_Initialized(false)
-    , m_ScriptManager(nullptr)
-    , m_LastTime(0) {
+// Screen dimensions
+static int sScreenWidth = 480;
+static int sScreenHeight = 320;
+
+// Frame counter
+static int sFrameCount = 0;
+static long sLastTime = 0;
+static float sFPS = 0;
+
+// Simple vertex shader for 2D rendering
+static const char* VERTEX_SHADER = 
+    "attribute vec4 aPosition;\n"
+    "attribute vec4 aColor;\n"
+    "varying vec4 vColor;\n"
+    "void main() {\n"
+    "   gl_Position = aPosition;\n"
+    "   vColor = aColor;\n"
+    "}\n";
+
+// Simple fragment shader
+static const char* FRAGMENT_SHADER = 
+    "precision mediump float;\n"
+    "varying vec4 vColor;\n"
+    "void main() {\n"
+    "   gl_FragColor = vColor;\n"
+    "}\n";
+
+static GLuint sProgram = 0;
+static GLuint sPositionHandle = 0;
+static GLuint sColorHandle = 0;
+
+// Compile shader
+static GLuint compileShader(GLenum type, const char* source) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, nullptr);
+    glCompileShader(shader);
+    return shader;
 }
 
-GameEngine::~GameEngine() {
-    shutdown();
-}
-
-bool GameEngine::initialize() {
-    if (m_Initialized) {
-        LOGI("GameEngine already initialized");
-        return true;
-    }
-
-    LOGI("Initializing GameEngine for weak devices...");
-
-    // Initialize script manager (placeholder)
-    m_ScriptManager = new ScriptManager();
-    if (!m_ScriptManager->initialize()) {
-        LOGE("Failed to initialize ScriptManager");
-        delete m_ScriptManager;
-        m_ScriptManager = nullptr;
-        return false;
-    }
-
-    // Set the app state
-    m_App->userData = this;
-    m_App->onAppCmd = handleCommand;
-    m_App->onInputEvent = handleInput;
-
-    m_Initialized = true;
-    LOGI("GameEngine initialized successfully");
+// Initialize OpenGL
+static bool initGL() {
+    // Create shaders
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, VERTEX_SHADER);
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+    
+    // Create program
+    sProgram = glCreateProgram();
+    glAttachShader(sProgram, vertexShader);
+    glAttachShader(sProgram, fragmentShader);
+    glLinkProgram(sProgram);
+    
+    // Get handles
+    sPositionHandle = glGetAttribLocation(sProgram, "aPosition");
+    sColorHandle = glGetAttribLocation(sProgram, "aColor");
+    
+    // Enable vertex attributes
+    glEnableVertexAttribArray(sPositionHandle);
+    glEnableVertexAttribArray(sColorHandle);
+    
+    LOGI("OpenGL ES 2.0 initialized");
     return true;
 }
 
-void GameEngine::shutdown() {
-    if (!m_Initialized) {
-        return;
-    }
-
-    LOGI("Shutting down GameEngine...");
-
-    m_Running = false;
-
-    if (m_ScriptManager) {
-        m_ScriptManager->shutdown();
-        delete m_ScriptManager;
-        m_ScriptManager = nullptr;
-    }
-
-    m_Initialized = false;
-    LOGI("GameEngine shutdown complete");
+// Draw a colored rectangle
+static void drawRect(float x, float y, float w, float h, float r, float g, float b, float a) {
+    float vertices[] = {
+        // x, y, r, g, b, a
+        x, y, r, g, b, a,
+        x + w, y, r, g, b, a,
+        x, y + h, r, g, b, a,
+        x + w, y, r, g, b, a,
+        x + w, y + h, r, g, b, a,
+        x, y + h, r, g, b, a,
+    };
+    
+    glVertexAttribPointer(sPositionHandle, 2, GL_FLOAT, GL_FALSE, 24, vertices);
+    glVertexAttribPointer(sColorHandle, 4, GL_FLOAT, GL_FALSE, 24, vertices + 2);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void GameEngine::run() {
-    if (!m_Initialized) {
-        LOGE("GameEngine not initialized");
-        return;
-    }
+// JNI Functions
+extern "C" {
 
-    LOGI("Starting game loop...");
-    m_Running = true;
-    m_LastTime = getTimeMs();
-
-    int frameCount = 0;
-
-    while (m_Running) {
-        // Process all pending events
-        int events;
-        struct android_poll_source* source;
-
-        // Blocking poll - waits for events
-        int pollResult = ALooper_pollOnce(-1, nullptr, &events, (void**)&source);
-
-        if (pollResult >= 0) {
-            if (source != nullptr) {
-                source->process(m_App, source);
-            }
-
-            if (m_App->destroyRequested) {
-                LOGI("App destroy requested");
-                break;
-            }
-        }
-
-        if (m_Running) {
-            // Calculate delta time
-            uint64_t currentTime = getTimeMs();
-            uint64_t deltaTime = currentTime - m_LastTime;
-            
-            // Cap delta time
-            if (deltaTime > 100) {
-                deltaTime = 100;
-            }
-            m_LastTime = currentTime;
-
-            // Simple update
-            update(deltaTime);
-
-            // Simple render (draw to window if available)
-            render();
-
-            frameCount++;
-            if (frameCount % 60 == 0) {
-                LOGI("Frame %d - running", frameCount);
-            }
-        }
-    }
-
-    LOGI("Game loop ended");
+JNIEXPORT void JNICALL
+Java_com_engine2d_game_GameRenderer_nativeInit(JNIEnv* env, jobject obj) {
+    LOGI("GameEngine 2D initializing...");
+    initGL();
+    sLastTime = 0;
+    sFrameCount = 0;
+    LOGI("GameEngine 2D ready!");
 }
 
-void GameEngine::update(uint64_t deltaTime) {
-    // Update game logic here
+JNIEXPORT void JNICALL
+Java_com_engine2d_game_GameRenderer_nativeResize(JNIEnv* env, jobject obj, jint width, jint height) {
+    sScreenWidth = width;
+    sScreenHeight = height;
+    glViewport(0, 0, width, height);
+    LOGI("Screen resized: %dx%d", width, height);
 }
 
-void GameEngine::render() {
-    // Render game graphics here
-    // Simple drawing handled by ANativeActivity
-}
-
-uint64_t GameEngine::getTimeMs() {
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    return (uint64_t)(now.tv_sec * 1000 + now.tv_nsec / 1000000);
-}
-
-void GameEngine::handleCommand(android_app* app, int32_t cmd) {
-    GameEngine* engine = (GameEngine*)app->userData;
-    if (engine) {
-        engine->onCommand(cmd);
+JNIEXPORT void JNICALL
+Java_com_engine2d_game_GameRenderer_nativeRender(JNIEnv* env, jobject obj) {
+    // Calculate FPS
+    sFrameCount++;
+    long currentTime = sLastTime + 1; // Simplified
+    
+    // Clear screen with dark blue
+    glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Use shader program
+    glUseProgram(sProgram);
+    
+    // Draw background gradient (simple rectangles)
+    drawRect(-1.0f, -1.0f, 2.0f, 2.0f, 0.1f, 0.1f, 0.2f, 1.0f);
+    
+    // Draw some demo shapes
+    // Player (white square)
+    drawRect(-0.1f, -0.1f, 0.2f, 0.2f, 1.0f, 1.0f, 1.0f, 1.0f);
+    
+    // Ground (green)
+    drawRect(-1.0f, -0.8f, 2.0f, 0.1f, 0.2f, 0.8f, 0.2f, 1.0f);
+    
+    // Enemy 1 (red)
+    drawRect(0.5f, -0.6f, 0.15f, 0.15f, 1.0f, 0.2f, 0.2f, 1.0f);
+    
+    // Enemy 2 (red)
+    drawRect(0.7f, -0.7f, 0.15f, 0.15f, 1.0f, 0.3f, 0.2f, 1.0f);
+    
+    // Coin (yellow)
+    drawRect(-0.5f, -0.5f, 0.08f, 0.08f, 1.0f, 0.9f, 0.2f, 1.0f);
+    drawRect(-0.3f, -0.6f, 0.08f, 0.08f, 1.0f, 0.9f, 0.2f, 1.0f);
+    
+    // Debug: show frame count every 60 frames
+    if (sFrameCount % 60 == 0) {
+        LOGI("Frame %d", sFrameCount);
     }
 }
 
-void GameEngine::onCommand(int32_t cmd) {
-    switch (cmd) {
-        case APP_CMD_INIT_WINDOW:
-            LOGI("Window initialized");
-            break;
-        case APP_CMD_TERM_WINDOW:
-            LOGI("Window terminated");
-            break;
-        case APP_CMD_GAINED_FOCUS:
-            LOGI("Gained focus");
-            m_Running = true;
-            break;
-        case APP_CMD_LOST_FOCUS:
-            LOGI("Lost focus");
-            break;
-        case APP_CMD_PAUSE:
-            LOGI("App paused");
-            break;
-        case APP_CMD_RESUME:
-            LOGI("App resumed");
-            break;
-        case APP_CMD_STOP:
-            LOGI("App stopped");
-            break;
-        case APP_CMD_DESTROY:
-            LOGI("App destroyed");
-            shutdown();
-            break;
+JNIEXPORT void JNICALL
+Java_com_engine2d_game_GameRenderer_nativeShutdown(JNIEnv* env, jobject obj) {
+    LOGI("GameEngine 2D shutting down...");
+    if (sProgram) {
+        glDeleteProgram(sProgram);
+        sProgram = 0;
     }
 }
 
-int32_t GameEngine::handleInput(android_app* app, AInputEvent* event) {
-    GameEngine* engine = (GameEngine*)app->userData;
-    if (engine) {
-        return engine->onInput(event);
-    }
-    return 0;
-}
-
-int32_t GameEngine::onInput(AInputEvent* event) {
-    return 0;
-}
-
-ScriptManager* GameEngine::getScriptManager() {
-    return m_ScriptManager;
-}
-
-// Application entry point
-void android_main(android_app* app) {
-    LOGI("android_main called");
-
-    // Create and initialize engine
-    GameEngine engine(app);
-    if (!engine.initialize()) {
-        LOGE("Failed to initialize game engine");
-        return;
-    }
-
-    // Run the game loop
-    engine.run();
-
-    LOGI("android_main exiting");
 }
