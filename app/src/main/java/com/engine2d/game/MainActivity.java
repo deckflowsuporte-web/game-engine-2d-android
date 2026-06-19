@@ -39,6 +39,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     
     // Touch
     private float touchX = -1;
+    private float touchY = -1;
     private boolean isJumping = false;
     
     @Override
