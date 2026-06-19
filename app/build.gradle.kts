@@ -18,9 +18,7 @@ android {
                 cppFlags += "-std=c++17 -O2 -ffast-math"
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    "-DANDROID_TOOLCHAIN=clang",
-                    "-DCMAKE_C_FLAGS=-mfloat-abi=softfp",
-                    "-DCMAKE_CXX_FLAGS=-mfloat-abi=softfp"
+                    "-DANDROID_TOOLCHAIN=clang"
                 )
             }
         }
