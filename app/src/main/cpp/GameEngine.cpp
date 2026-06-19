@@ -2,11 +2,17 @@
 #include "ScriptManager.h"
 #include <android/log.h>
 #include <android/looper.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
 #include "native_app_glue/android_native_app_glue.h"
 
 #define LOG_TAG "GameEngine"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+static EGLDisplay g_Display = EGL_NO_DISPLAY;
+static EGLSurface g_Surface = EGL_NO_SURFACE;
+static EGLContext g_Context = EGL_NO_CONTEXT;
 
 GameEngine::GameEngine(android_app* app) 
     : m_App(app)
@@ -26,7 +32,7 @@ bool GameEngine::initialize() {
         return true;
     }
 
-    LOGI("Initializing GameEngine...");
+    LOGI("Initializing GameEngine for weak devices...");
 
     // Initialize script manager
     m_ScriptManager = new ScriptManager();
@@ -47,6 +53,88 @@ bool GameEngine::initialize() {
     return true;
 }
 
+bool GameEngine::initEGL() {
+    // Initialize EGL - for weak device support
+    EGLint format, numConfigs, majorVersion, minorVersion;
+    EGLConfig config;
+
+    // Choose OpenGL ES 2.0 configuration (compatible with weak devices)
+    EGLint attribList[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_BLUE_SIZE, 5,
+        EGL_GREEN_SIZE, 6,
+        EGL_RED_SIZE, 5,
+        EGL_ALPHA_SIZE, 0,
+        EGL_DEPTH_SIZE, 16,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+
+    g_Display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (g_Display == EGL_NO_DISPLAY) {
+        LOGE("eglGetDisplay failed");
+        return false;
+    }
+
+    if (!eglInitialize(g_Display, &majorVersion, &minorVersion)) {
+        LOGE("eglInitialize failed");
+        return false;
+    }
+
+    if (!eglChooseConfig(g_Display, attribList, &config, 1, &numConfigs)) {
+        LOGE("eglChooseConfig failed");
+        return false;
+    }
+
+    if (!eglGetConfigAttrib(g_Display, config, EGL_NATIVE_VISUAL_ID, &format)) {
+        LOGE("eglGetConfigAttrib failed");
+        return false;
+    }
+
+    ANativeWindow_setBuffersGeometry(m_App->window, 0, 0, format);
+
+    g_Surface = eglCreateWindowSurface(g_Display, config, m_App->window, nullptr);
+    if (g_Surface == EGL_NO_SURFACE) {
+        LOGE("eglCreateWindowSurface failed");
+        return false;
+    }
+
+    // Create OpenGL ES 2.0 context
+    EGLint contextAttribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+    g_Context = eglCreateContext(g_Display, config, nullptr, contextAttribs);
+    if (g_Context == EGL_NO_CONTEXT) {
+        LOGE("eglCreateContext failed");
+        return false;
+    }
+
+    if (!eglMakeCurrent(g_Display, g_Surface, g_Surface, g_Context)) {
+        LOGE("eglMakeCurrent failed");
+        return false;
+    }
+
+    LOGI("EGL initialized: OpenGL ES %d.%d", majorVersion, minorVersion);
+    return true;
+}
+
+void GameEngine::destroyEGL() {
+    if (g_Display != EGL_NO_DISPLAY) {
+        eglMakeCurrent(g_Display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (g_Surface != EGL_NO_SURFACE) {
+            eglDestroySurface(g_Display, g_Surface);
+            g_Surface = EGL_NO_SURFACE;
+        }
+        if (g_Context != EGL_NO_CONTEXT) {
+            eglDestroyContext(g_Display, g_Context);
+            g_Context = EGL_NO_CONTEXT;
+        }
+        eglTerminate(g_Display);
+        g_Display = EGL_NO_DISPLAY;
+    }
+}
+
 void GameEngine::shutdown() {
     if (!m_Initialized) {
         return;
@@ -55,6 +143,7 @@ void GameEngine::shutdown() {
     LOGI("Shutting down GameEngine...");
 
     m_Running = false;
+    destroyEGL();
 
     if (m_ScriptManager) {
         m_ScriptManager->shutdown();
@@ -72,16 +161,23 @@ void GameEngine::run() {
         return;
     }
 
-    LOGI("Starting game loop...");
+    LOGI("Starting optimized game loop for weak devices...");
     m_Running = true;
     m_LastTime = getTimeMs();
+
+    // Target 30 FPS for weak devices (adjustable)
+    const uint64_t targetFrameTime = 33; // ~30 FPS
+    uint64_t sleepTime;
 
     while (m_Running) {
         // Process all pending events
         int events;
         struct android_poll_source* source;
 
-        while (ALooper_pollAll(0, nullptr, &events, (void**)&source) >= 0) {
+        // Use blocking poll for weak devices (saves battery)
+        int pollResult = ALooper_pollOnce(0, nullptr, &events, (void**)&source);
+
+        if (pollResult >= 0) {
             if (source != nullptr) {
                 source->process(m_App, source);
             }
@@ -93,17 +189,43 @@ void GameEngine::run() {
             }
         }
 
-        if (m_Initialized && m_Running) {
+        if (m_Initialized && m_Running && m_App->window != nullptr) {
             // Calculate delta time
             uint64_t currentTime = getTimeMs();
             uint64_t deltaTime = currentTime - m_LastTime;
+            
+            // Cap delta time to prevent spiral of death on slow devices
+            if (deltaTime > 100) {
+                deltaTime = 100;
+            }
             m_LastTime = currentTime;
+
+            // Initialize EGL when window is ready
+            static bool eglInitialized = false;
+            if (!eglInitialized && m_App->window != nullptr) {
+                if (initEGL()) {
+                    eglInitialized = true;
+                }
+            }
 
             // Update game state
             update(deltaTime);
 
             // Render frame
             render();
+
+            // Swap buffers
+            if (g_Display != EGL_NO_DISPLAY) {
+                eglSwapBuffers(g_Display, g_Surface);
+            }
+
+            // Frame rate limiting for weak devices
+            currentTime = getTimeMs();
+            sleepTime = targetFrameTime - (currentTime - m_LastTime);
+            if (sleepTime > 0 && sleepTime <= targetFrameTime) {
+                // Use efficient sleep
+                usleep(sleepTime * 1000);
+            }
         }
     }
 
@@ -116,8 +238,9 @@ void GameEngine::update(uint64_t deltaTime) {
 }
 
 void GameEngine::render() {
-    // Render game graphics here
-    // This is called every frame
+    // Clear screen (basic OpenGL ES 2.0)
+    glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 uint64_t GameEngine::getTimeMs() {
@@ -136,10 +259,11 @@ void GameEngine::handleCommand(android_app* app, int32_t cmd) {
 void GameEngine::onCommand(int32_t cmd) {
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
-            LOGI("Window initialized");
+            LOGI("Window initialized - ready for rendering");
             break;
         case APP_CMD_TERM_WINDOW:
             LOGI("Window terminated");
+            destroyEGL();
             break;
         case APP_CMD_GAINED_FOCUS:
             LOGI("Gained focus");
@@ -189,7 +313,7 @@ ScriptManager* GameEngine::getScriptManager() {
 
 // Application entry point
 void android_main(android_app* app) {
-    LOGI("android_main called");
+    LOGI("android_main called - GameEngine 2D for weak devices");
 
     // Initialize the game engine
     GameEngine engine(app);

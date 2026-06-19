@@ -3,6 +3,7 @@
 
 #include <android/input.h>
 #include <android/log.h>
+#include <android/native_window.h>
 #include <time.h>
 #include <stdint.h>
 
@@ -22,6 +23,10 @@ public:
 
     void update(uint64_t deltaTime);
     void render();
+
+    // EGL initialization for OpenGL ES 2.0 (weak device support)
+    bool initEGL();
+    void destroyEGL();
 
     ScriptManager* getScriptManager();
 

@@ -8,29 +8,38 @@ android {
 
     defaultConfig {
         applicationId = "com.engine2d.game"
-        minSdk = 21
+        minSdk = 16
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
 
         externalNativeBuild {
             cmake {
-                cppFlags += "-std=c++17"
+                cppFlags += "-std=c++17 -O2 -ffast-math"
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    "-DANDROID_TOOLCHAIN=clang"
+                    "-DANDROID_TOOLCHAIN=clang",
+                    "-DCMAKE_C_FLAGS=-mfloat-abi=softfp",
+                    "-DCMAKE_CXX_FLAGS=-mfloat-abi=softfp"
                 )
             }
         }
 
+        // Support all ABIs including 32-bit for weak devices
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf(
+                "armeabi-v7a",  // 32-bit ARM (old phones)
+                "arm64-v8a",    // 64-bit ARM
+                "x86",          // Intel 32-bit (emulators, old Chromebooks)
+                "x86_64"        // Intel 64-bit
+            )
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
