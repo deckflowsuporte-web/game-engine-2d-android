@@ -7,22 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Optimization flags for weak devices
-set(CMAKE_C_FLAGS_RELEASE "-O2 -ffast-math -funroll-loops")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -ffast-math -funroll-loops")
+set(CMAKE_C_FLAGS_RELEASE "-O2 -ffast-math")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -ffast-math")
 
 # Android specific settings
 if(ANDROID)
     set(ANDROID_STL "c++_shared")
-    
-    # Check ABI and add specific optimizations
-    if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        # 32-bit ARM - optimize for weak devices
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=softfp -mfpu=neon")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=softfp -mfpu=neon")
-    endif()
 endif()
 
-# Source files for the engine core (including native_app_glue)
+# Source files for the engine core
 set(ENGINE_SOURCES
     native_app_glue/android_native_app_glue.c
     ScriptManager.cpp
@@ -38,13 +31,11 @@ target_include_directories(gameengine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/native_app_glue
 )
 
-# Link libraries
+# Link libraries - minimal set for weak devices
 target_link_libraries(gameengine
     android
     log
-    GLESv2  # OpenGL ES 2.0 for weak device support
-    EGL     # EGL for rendering context
 )
 
-# Export compile commands for IDE integration
+# Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

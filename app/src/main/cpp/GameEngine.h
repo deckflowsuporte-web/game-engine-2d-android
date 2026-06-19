@@ -3,11 +3,10 @@
 
 #include <android/input.h>
 #include <android/log.h>
-#include <android/native_window.h>
 #include <time.h>
 #include <stdint.h>
 
-// Forward declaration instead of including android_native_app_glue.h
+// Forward declaration
 struct android_app;
 
 class ScriptManager;
@@ -23,10 +22,6 @@ public:
 
     void update(uint64_t deltaTime);
     void render();
-
-    // EGL initialization for OpenGL ES 2.0 (weak device support)
-    bool initEGL();
-    void destroyEGL();
 
     ScriptManager* getScriptManager();
 
