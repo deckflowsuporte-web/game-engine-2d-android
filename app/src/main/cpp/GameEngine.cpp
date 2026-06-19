@@ -4,6 +4,8 @@
 #include <android/looper.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <thread>
+#include <chrono>
 #include "native_app_glue/android_native_app_glue.h"
 
 #define LOG_TAG "GameEngine"
@@ -223,8 +225,8 @@ void GameEngine::run() {
             currentTime = getTimeMs();
             sleepTime = targetFrameTime - (currentTime - m_LastTime);
             if (sleepTime > 0 && sleepTime <= targetFrameTime) {
-                // Use efficient sleep
-                usleep(sleepTime * 1000);
+                // Use C++ thread sleep for cross-platform compatibility
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
             }
         }
     }
