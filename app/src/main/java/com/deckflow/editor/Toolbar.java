@@ -31,7 +31,7 @@ public class Toolbar extends LinearLayout {
     }
     
     private void init() {
-        setOrientation(HORIZONTAL);
+        setOrientation(LinearLayout.HORIZONTAL);
         setBackgroundColor(0xFF2A2A4A);
         setPadding(16, 8, 16, 8);
         

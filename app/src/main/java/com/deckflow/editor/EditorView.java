@@ -1,5 +1,6 @@
 package com.deckflow.editor;
 
+import android.content.*;
 import android.graphics.*;
 import android.view.*;
 import com.deckflow.engine.*;
@@ -342,5 +343,10 @@ public class EditorView extends View {
             panOffset.y = getHeight()/2 - selectedNode.position.y * zoom;
             invalidate();
         }
+    }
+    
+    public void setShowGrid(boolean show) {
+        this.showGrid = show;
+        invalidate();
     }
 }

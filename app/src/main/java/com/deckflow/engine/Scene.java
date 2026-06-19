@@ -11,7 +11,6 @@ public class Scene extends Node {
     
     public String scenePath;
     public String sceneName = "Scene";
-    public Camera2D currentCamera;
     
     protected ArrayList<Node> rootNodes = new ArrayList<>();
     protected ArrayList<Node> toAdd = new ArrayList<>();

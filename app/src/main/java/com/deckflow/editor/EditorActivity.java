@@ -105,7 +105,7 @@ public class EditorActivity extends Activity {
     
     private void buildEditorUI() {
         mainLayout = new LinearLayout(this);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
+        mainLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
         mainLayout.setBackgroundColor(0xFF1A1A2E);
         
         // Top toolbar
@@ -128,13 +128,13 @@ public class EditorActivity extends Activity {
         
         // Main content area
         LinearLayout contentArea = new LinearLayout(this);
-        contentArea.setOrientation(HORIZONTAL);
+        contentArea.setOrientation(LinearLayout.HORIZONTAL);
         contentArea.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         
         // Left panel - Scene Tree
         leftPanel = new LinearLayout(this);
-        leftPanel.setOrientation(LinearLayout.VERTICAL);
+        leftPanel.setOrientation(android.widget.LinearLayout.VERTICAL);
         leftPanel.setBackgroundColor(0xFF1E1E2E);
         leftPanel.setLayoutParams(new LinearLayout.LayoutParams(300, 
             LinearLayout.LayoutParams.MATCH_PARENT));
@@ -154,7 +154,7 @@ public class EditorActivity extends Activity {
         
         // Right panel - Inspector
         rightPanel = new LinearLayout(this);
-        rightPanel.setOrientation(LinearLayout.VERTICAL);
+        rightPanel.setOrientation(android.widget.LinearLayout.VERTICAL);
         rightPanel.setBackgroundColor(0xFF1E1E2E);
         rightPanel.setLayoutParams(new LinearLayout.LayoutParams(350, 
             LinearLayout.LayoutParams.MATCH_PARENT));
@@ -170,7 +170,7 @@ public class EditorActivity extends Activity {
         
         // Center - Editor View
         centerPanel = new LinearLayout(this);
-        centerPanel.setOrientation(LinearLayout.VERTICAL);
+        centerPanel.setOrientation(android.widget.LinearLayout.VERTICAL);
         centerPanel.setLayoutParams(new LinearLayout.LayoutParams(0, 
             LinearLayout.LayoutParams.MATCH_PARENT, 1));
         
@@ -186,7 +186,7 @@ public class EditorActivity extends Activity {
         
         // Bottom toolbar for editor controls
         LinearLayout zoomControls = new LinearLayout(this);
-        zoomControls.setOrientation(HORIZONTAL);
+        zoomControls.setOrientation(LinearLayout.HORIZONTAL);
         zoomControls.setBackgroundColor(0x88000000);
         zoomControls.setPadding(16, 8, 16, 8);
         zoomControls.setGravity(Gravity.BOTTOM | Gravity.RIGHT);

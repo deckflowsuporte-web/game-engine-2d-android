@@ -125,7 +125,10 @@ public class Engine {
         drawCalls = 0;
         
         // Get all sprites and render
-        ArrayList<Sprite> sprites = currentScene.getNodesByClass(Sprite.class);
+        ArrayList<Sprite> sprites = new ArrayList<>();
+        for (Node n : currentScene.getNodesByClass(Sprite.class)) {
+            sprites.add((Sprite)n);
+        }
         
         // Sort by zIndex
         Collections.sort(sprites, (a, b) -> Integer.compare(a.zIndex, b.zIndex));
@@ -139,7 +142,11 @@ public class Engine {
         
         // Debug collision shapes
         if (showCollisionShapes) {
-            renderCollisionShapes(canvas);
+            ArrayList<CollisionShape2D> shapes = new ArrayList<>();
+            for (Node n : currentScene.getNodesByClass(CollisionShape2D.class)) {
+                shapes.add((CollisionShape2D)n);
+            }
+            renderCollisionShapes(canvas, shapes);
         }
         
         // Debug info
@@ -172,13 +179,12 @@ public class Engine {
         }
     }
     
-    private void renderCollisionShapes(Canvas canvas) {
+    private void renderCollisionShapes(Canvas canvas, ArrayList<CollisionShape2D> shapes) {
         Paint paint = new Paint();
         paint.setColor(Color.GREEN);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2);
         
-        ArrayList<CollisionShape2D> shapes = currentScene.getNodesByClass(CollisionShape2D.class);
         for (CollisionShape2D shape : shapes) {
             Rect2 bb = shape.boundingBox;
             canvas.drawRect(bb.x, bb.y, bb.x + bb.width, bb.y + bb.height, paint);
