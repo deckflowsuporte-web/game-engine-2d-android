@@ -44,7 +44,6 @@ target_link_libraries(gameengine
     log
     GLESv2  # OpenGL ES 2.0 for weak device support
     EGL     # EGL for rendering context
-    pthread # For std::thread
 )
 
 # Export compile commands for IDE integration
